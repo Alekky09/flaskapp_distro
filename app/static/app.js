@@ -1,5 +1,4 @@
 $(document).ready(function() {
-
     $(".update-button").change(function(event) {
         var checkbox = $(event.target);
         var is_checked = $(checkbox).is(":checked");
@@ -13,6 +12,7 @@ $(document).ready(function() {
 
         req.done(function() {
             checkbox.prop("checked") = is_checked;
+            //checkbox.parents("tr").addClass("table-danger");
         });
   
     });

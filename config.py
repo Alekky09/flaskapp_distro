@@ -8,19 +8,12 @@ class Config(object):
     SECRET_KEY = "20b86a02362baa0490e1065d3b10309a"
     SQLALCHEMY_DATABASE_URI = "sqlite:///database.db"
     SQLALCHEMY_TRACK_MODIFICATIONS = "False"
-    # Database
-    DB_NAME = "production-db"
-    DB_USERNAME = "root"
-    DB_PASSWORD = "example"
-
-    # Uploads folder on the server
-    UPLOADS = "/home/username/app/app/static/images/uploads"
 
     #It will only send cookies if the connection is https secure
-    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = False
 
 
-# ProductionConfig is gonna inherit all the attributs from (Config)
+# ProductionConfig is gonna inherit all the attributes from (Config)
 class ProductionConfig(Config):
     pass
 

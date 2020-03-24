@@ -1,62 +1,24 @@
 from app import app
 from flask import render_template, redirect, url_for, flash, request, jsonify
-
-from flask_wtf import FlaskForm
-from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import InputRequired, Email, Length
-
-import os
 from werkzeug.security import check_password_hash, generate_password_hash
-
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from sqlalchemy.exc import IntegrityError, InvalidRequestError
+
+from db_classes import User, Order, db
+from forms import LoginForm, RegisterForm, UploadForm
 
 import xlrd
-from sqlalchemy.exc import IntegrityError
 
-#Initialize database
-db = SQLAlchemy(app)
+
 #Initialize login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(15), unique=True)
-    email = db.Column(db.String(50), unique=True)
-    password = db.Column(db.String(80))
-
-class Order(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-    work_order_id = db.Column(db.String(15), unique=True)
-    work_order_date = db.Column(db.String(11))
-    address = db.Column(db.String(100))
-    person_in_charge = db.Column(db.String(50))
-    description = db.Column(db.String(300))
-    is_completed = db.Column(db.Boolean)
-    is_signed = db.Column(db.Boolean)
-    is_paid = db.Column(db.Boolean)
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Class for the login form
-class LoginForm(FlaskForm):
-    username = StringField("username", validators=[InputRequired(), Length(min=4, max=15)])
-    password = PasswordField("password", validators=[InputRequired(), Length(min=8, max=80)])
-    remember = BooleanField("remember me")
-
-class RegisterForm(FlaskForm):
-    username = StringField("username", validators=[InputRequired(), Length(min=4, max=15)])
-    email = StringField("email", validators=[InputRequired(), Email(message="Invalid email"), Length(max=50)])
-    password = PasswordField("password", validators=[InputRequired(), Length(min=8, max=80)])
-
-class UploadForm(FlaskForm):
-    xml_file = FileField("xml_file",validators=[FileRequired(), FileAllowed(["xls", "xlsx"], "Excel spreadsheets only!")])
 
 # Ensure responses aren't cached
 @app.after_request
@@ -66,10 +28,11 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
+
 @app.route("/", methods = ["GET", "POST"])
 @login_required
 def index():
-    # Upload is gonna be here
+    # Initialize form for uploading spreadsheets
     form = UploadForm()
     
     if form.validate_on_submit():
@@ -99,24 +62,27 @@ def index():
             db.session.commit()
 
         except IntegrityError:
-            return 'Order already exists!'
+            db.session.rollback()
+            flash("Order already exists!")
 
     # Selecting the orders of the user for display
     orders = db.session.query(Order).filter_by(user_id=current_user.get_id()).all()
          
     return render_template("index.html", form=form, orders=orders)
 
+# Route for updating order fields
 @app.route("/update", methods=["POST"])
+@login_required
 def update():
-    
+
+    # Query for the order selected
     order = Order.query.filter_by(id=request.form["order_id"]).first()
     
+    # Function for handling jquery true/false strings
     def boolify(x):
-        if x == "true":
-            return True
-        else:
-            return False
+        return True if x == "true" else False
 
+    # Checking which field is being updated
     if request.form["checkbox"] == "is_completed":
         order.is_completed = boolify(request.form["is_checked"])
     
@@ -126,31 +92,25 @@ def update():
     else:
         order.is_paid = boolify(request.form["is_checked"])
 
+    print(order.is_completed + order.is_signed + order.is_paid)
     db.session.commit()
 
+    # Return the updated data to the template
     return jsonify({"is_completed" : order.is_completed, "is_signed" : order.is_signed, "is_paid" : order.is_paid})
 
-# @main.route("/delete")
-# def delete():
-#     # Deleting data from a table in sqlalchemy which is connected to the other table
-#     order_ids = db.session.query(Order.id).join(Customer).filter(Customer.state == "CA")
-    
-#     # Seeing how many orders will get deleted and deleting them
-#     # You can only delete from one table at a time
-
-#     delete_count - db.session.query(Order).filter(Order.id.in_(order_ids.subquery())).delete(
-#         synchronize_session=False
-#     )
-#     return str(delete_count)
 
 @app.route("/login", methods = ["GET", "POST"])
 def login():
 
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
     form = LoginForm()
 
     # If the form is submitted
     if form.validate_on_submit():
+        # Search for the user
         user = User.query.filter_by(username=form.username.data).first()
+
         if user:
             if check_password_hash(user.password, form.password.data):
                 #Log in the user
@@ -158,9 +118,8 @@ def login():
                 #Then redirect
                 return redirect(url_for("index"))
 
-        return "Invalid username and/or password"
-
-
+        flash("Invalid username and/or password")
+        
     return render_template("login.html", form=form)
 
 
@@ -176,18 +135,27 @@ def logout():
 @app.route("/register", methods=["GET", "POST"])
 def register():
 
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    
     form = RegisterForm()
 
     if form.validate_on_submit():
+
         #Hash the password
         hashed_password = generate_password_hash(form.password.data, method="sha256")
+        
         #Create a new user object
         new_user = User(username=form.username.data, email=form.email.data, password=hashed_password)
+        
         #Add the user to the db
         try:
             db.session.add(new_user)
             db.session.commit()
+
+            return redirect(url_for("login"))
+
         except IntegrityError:
-            return "Username/email already taken!"
+            flash ("Username/email already taken!")
 
     return render_template("register.html", form=form)
