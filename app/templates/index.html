@@ -1,12 +1,49 @@
 {% extends "bootstrap/base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
+{% block styles %}
+{{super()}}
+<link rel="stylesheet" href="/static/styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet"> 
+{% endblock %}
+
 {% block head %}
 {{super()}}
-{% with messages = get_flashed_messages() %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+<script src="{{ url_for('.static', filename='app.js') }}"></script>
+{% endblock %}
+
+{% block title %}
+Workaholic
+{% endblock %}
+
+{% block body %}
+<nav>  
+  <span id="logo-label">#Workaholic</span>
+  <div id="profile">
+    <span id="username">{{ username[0] }}</span>
+    <div><small>Total Earnings : </small><span id="earnings-sum"></span></div>
+  </div>
+  <span id="file-upload-label">Submit An Order<br><small>( Excel file only )</small></span>
+  <div id="file-upload-container">   
+    <form method="POST" action="/" enctype="multipart/form-data">        
+      {{ form.hidden_tag() }}
+      <div>
+      {{ form.xml_file(class_="custom-file-input") }}
+      <span>{{ ', '.join(form.xml_file.errors) }}</span>
+      </div>
+      <button type="submit">Submit</button>
+    </form> 
+  </div>   
+ <a id="nav-logout-button" href="/logout">Log out</a>
+  
+</nav>
+{% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    {% for message in messages %}
-    <div class="alert alert-danger container mt-3 alert-dismissible fade show" role="alert" >
+    {% for category, message in messages %}
+      <div class="alert {{category}}" role="alert" >
         {{ message }}  
         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
         <span aria-hidden="true">&times;</span>
@@ -15,49 +52,33 @@
     {% endfor %}
   {% endif %}
 {% endwith %}
-{% endblock %}
-
-{% block title %}
-Index
-{% endblock %}
-
-{% block content %}
-<div class="container">
-    <form class="form-signin" method="POST" action="/" enctype="multipart/form-data">
-        <h2 class="form-signin-heading">Submit an order</h2>
-        {{ form.hidden_tag() }}
-        {{ form.xml_file }}
-        <br>
-        <span>{{ ', '.join(form.xml_file.errors) }}</span><br>
-        <div class="row">
-          <button class="btn btn-lg btn-primary btn-block col-3 ml-3" type="submit">Submit</button>
-          <a class="btn btn-lg btn-warning col-3 ml-auto mr-3" href="/logout" role="button">Log out</a>
-        </div>
-        <br>
-    </form>
-    <table class="table table-hover" id="dtBasicExample">
-        <thead class="thead-dark">
+<div class="content">
+    <table class="order-table" id="orders-table">
+        <thead>
           <tr>
             <th scope="col">Order No.</th>
             <th scope="col">Order Date</th>
             <th scope="col">Address</th>
-            <th scope="col">POI</th>
-            <th scope="col">Description</th>
-            <th scope="col">Work done</th>
-            <th scope="col">Order signed</th>
-            <th scope="col">Paid</th>
+            <th scope="col">POI<br><small>(Person Of Interest)</small></th>
+            <th scope="col">Task Description</th>
+            <th scope="col" class="checkbox-header">Tasks done</th>
+            <th scope="col" class="checkbox-header">Order signed</th>
+            <th scope="col" class="checkbox-header">Paid out</th>
+            <th scope="col">Expenses</th>
+            <th scope="col">Income</th>
+            <th scope="col">Earnings</th>
           </tr>
         </thead>
         <tbody>
             {% for order in orders %}
-            <tr>
-                <th scope="row">{{ order.work_order_id }}</th>
+            <tr id="{{ order.id }}">
+                <th scope="row" >{{ order.work_order_id }}</th>
                 <td>{{ order.work_order_date }}</td>
                 <td>{{ order.address }}</td>
                 <td>{{ order.person_in_charge }}</td>
                 <td>{{ order.description }}</td>
                 <td>
-                    <input type="checkbox" class="form-check-input update-button" name="is_completed" id="{{ order.id }}"
+                    <input type="checkbox" class="form-check-input update-button" name="is_completed" 
                     {% if order.is_completed == True %} 
                     checked 
                     {% else %} 
@@ -65,7 +86,7 @@ Index
                     {% endif %}>
                 </td>
                 <td>
-                    <input type="checkbox" class="form-check-input update-button" name="is_signed" id="{{ order.id }}"  
+                    <input type="checkbox" class="form-check-input update-button" name="is_signed" 
                     {% if order.is_signed == True %} 
                     checked 
                     {% else %} 
@@ -73,12 +94,47 @@ Index
                     {% endif %}>
                 </td>
                 <td>
-                    <input type="checkbox" class="form-check-input update-button" name="is_paid" id="{{ order.id }}" 
+                    <input type="checkbox" class="form-check-input update-button" name="is_paid"
                     {% if order.is_paid == True %} 
                     checked 
                     {% else %} 
                     unchecked 
                     {% endif %}>
+                </td>
+                <td name="expenses-cell">
+                  
+                  <div class="number-input">
+                    {% if order.expenses %}
+                    <span class="expense">-{{ order.expenses }}</span>
+                    <input type="number" style="display: none">
+                    <br>
+                    <button id="expenses-number" style="display: none">Confirm</button>
+                    {% else %}
+                    <input type="number">
+                    <br>
+                    <button id="expenses-number">Confirm</button>
+                    {% endif %}
+                  </div>
+                  
+                </td>
+                <td name="income-cell">
+
+                  <div class="number-input">
+                    {% if order.income %}
+                    <span class="income">+{{ order.income }}</span>
+                    <input type="number" style="display: none">
+                    <br>
+                    <button id="income-number" style="display: none">Confirm</button>
+                    {% else %}
+                    <input type="number">
+                    <br>
+                    <button id="income-number">Confirm</button>
+                    {% endif %}
+                  </div>
+                  
+                </td>
+                <td>
+                  <span class="total-earnings">{% if order.total %}{{ order.total }}{% else %}0{% endif %}</span>
                 </td>
 
             </tr>
@@ -86,12 +142,14 @@ Index
         </tbody>
     </table>
 </div>
+
 {% endblock %}
 
-{% block scripts %}
+<!-- {% block scripts %}
+<script src="{{ url_for('.static', filename='app.js') }}"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
-<script src="{{ url_for('.static', filename='app.js') }}"></script>
 
-{% endblock %}
+
+{% endblock %} -->
