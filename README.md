@@ -4,3 +4,9 @@ It is a web application for processing my work order excel files and manipulatin
 It's easily expandable, can be used for other excel worksheets.
 
 I've implemented a number of packages, namely Flask-Login, Flask-Bootstrap, Flask-WTF, WTForms for markup forms and such. SQLAlchemy is used for a heroku-hosted database. Also xlrd package is used for handling excel data.
+
+### Before you run, it's required to fill in SECRET_KEY and SQLALCHEMY_DATABASE_URI in the config.py file.
+
+# TODO:
+- Make it responsive for smaller screens.
+- Polish up the js.
