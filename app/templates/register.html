@@ -1,43 +1,15 @@
-{% extends "bootstrap/base.html" %}
-{% import "bootstrap/wtf.html" as wtf %}
-
-{% block styles %}
-{{super()}}
-<link rel="stylesheet" href="/static/styles.css">
-{% endblock %}
+{% extends "layout.html" %}
 
 {% block title %}
-Workaholic | Register
+    Register
 {% endblock %}
 
-{% block content %}
-<nav><span id="logo-label">#Workaholic</span></nav>
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-    <div class="alert {{category}}" role="alert" >
-        {{ message }}  
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-      </button>
-    </div>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
-<div class="register-form">
-    <form method="POST" action="/register">
-        <h2>Register</h2>
-        {{ form.hidden_tag() }}
-
-        {{ wtf.form_field(form.username) }}
-
-        {{ wtf.form_field(form.email) }}
-
-        {{ wtf.form_field(form.password) }}
-
-        {{ wtf.form_field(form.confirm) }}
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Register</button>
-        <span>Already have an account? <a href="/login">Log in here</a></span>
-    </form>
-</div>
+{% block main %}
+<form class="form-signin" method="POST" action="/login">
+    {{ form.username }}
+    {{ form.email }}
+    {{ form.password }}
+    {{ form.confirm }}
+    <input type="submit">
+</form>
 {% endblock %}

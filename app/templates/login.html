@@ -1,41 +1,14 @@
-{% extends "bootstrap/base.html" %}
-{% import "bootstrap/wtf.html" as wtf %}
-
-{% block styles %}
-{{super()}}
-<link rel="stylesheet" href="/static/styles.css">
-{% endblock %}
+{% extends "layout.html" %}
 
 {% block title %}
-Workaholic | Log in
+    Log in
 {% endblock %}
 
-{% block content %}
-<nav><span id="logo-label">#Workaholic</span></nav>
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-      <div class="alert {{category}}" role="alert">
-        {{ message }}  
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-      </button>
-    </div>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
-<div class="login-form">
-    <form class="form-signin" method="POST" action="/login">
-        <h2 class="form-signin-heading">Log in and start working!</h2>
-        {{ form.hidden_tag() }}
-
-        {{ wtf.form_field(form.username) }}
-
-        {{ wtf.form_field(form.password) }}
-
-        {{ wtf.form_field(form.remember) }}
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
-        <span>Not a member yet? <a href="/register">Register here</a></span>
-    </form>
-</div>
+{% block main %}
+<form class="form-signin" method="POST" action="/login">
+    {{ form.username }}
+    {{ form.password }}
+    {{ form.remember }}
+    <input type="submit">
+</form>
 {% endblock %}
