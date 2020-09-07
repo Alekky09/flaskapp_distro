@@ -6,8 +6,8 @@ class Config(object):
     # secret module from python will create a good secret key
     # ad8uyrfhsvybrqf
     # Fill in SECRET_KEY and the DATABASE_URI before starting
-    SECRET_KEY = "11"
-    SQLALCHEMY_DATABASE_URI = "11"
+    SECRET_KEY = ""
+    SQLALCHEMY_DATABASE_URI = ""
     SQLALCHEMY_TRACK_MODIFICATIONS = "False"
 
     #It will only send cookies if the connection is https secure
